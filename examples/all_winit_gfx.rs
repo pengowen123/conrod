@@ -38,8 +38,8 @@ mod feature {
     use gfx::Device;
 
 
-    const WIN_W: u32 = support::WIN_W;
-    const WIN_H: u32 = support::WIN_H;
+    const WIN_W: f64 = support::WIN_W as _;
+    const WIN_H: f64 = support::WIN_H as _;
     const CLEAR_COLOR: [f32; 4] = [0.2, 0.2, 0.2, 1.0];
 
     type DepthFormat = gfx::format::DepthStencil;
@@ -48,7 +48,7 @@ mod feature {
         // Builder for window
         let builder = glutin::WindowBuilder::new()
             .with_title("Conrod with GFX and Glutin")
-            .with_dimensions(WIN_W, WIN_H);
+            .with_dimensions(glutin::dpi::LogicalSize::new(WIN_W, WIN_H));
 
         let context = glutin::ContextBuilder::new()
             .with_multisampling(4);
@@ -60,7 +60,7 @@ mod feature {
             gfx_window_glutin::init::<conrod::backend::gfx::ColorFormat, DepthFormat>(builder, context, &events_loop );
         let mut encoder: gfx::Encoder<_, _> = factory.create_command_buffer().into();
 
-        let mut renderer = conrod::backend::gfx::Renderer::new(&mut factory, &rtv, window.hidpi_factor() as f64).unwrap();
+        let mut renderer = conrod::backend::gfx::Renderer::new(&mut factory, &rtv, window.get_hidpi_factor()).unwrap();
 
         // Create Ui and Ids of widgets to instantiate
         let mut ui = conrod::UiBuilder::new([WIN_W as f64, WIN_H as f64]).theme(support::theme()).build();
@@ -116,16 +116,13 @@ mod feature {
         'main: loop {
             // If the window is closed, this will be None for one tick, so to avoid panicking with
             // unwrap, instead break the loop
-            let (win_w, win_h) = match window.get_inner_size() {
-                Some(s) => s,
+            let win_size = match window.get_inner_size() {
+                Some(s) => s.to_physical(window.get_hidpi_factor()),
                 None => break 'main,
             };
 
-            let dpi_factor = window.hidpi_factor();
-
             if let Some(primitives) = ui.draw_if_changed() {
-                let dims = (win_w as f32 * dpi_factor, win_h as f32 * dpi_factor);
-
+                let dims = (win_size.width as f32, win_size.height as f32);
                 //Clear the window
                 encoder.clear(&rtv, CLEAR_COLOR);
 
@@ -140,8 +137,7 @@ mod feature {
 
             let mut should_quit = false;
             events_loop.poll_events(|event|{
-                let (w, h) = (win_w as conrod::Scalar, win_h as conrod::Scalar);
-                let dpi_factor = dpi_factor as conrod::Scalar;
+                let (w, h) = (win_size.width as conrod::Scalar, win_size.height as conrod::Scalar);
 
                 // Convert winit event to conrod event, requires conrod to be built with the `winit` feature
                 if let Some(event) = conrod::backend::winit::convert_event(event.clone(), window.window()) {
@@ -151,7 +147,7 @@ mod feature {
                 // Close window if the escape key or the exit button is pressed
                 match event {
                     winit::Event::WindowEvent{event: winit::WindowEvent::KeyboardInput{input: winit::KeyboardInput{virtual_keycode: Some(winit::VirtualKeyCode::Escape),..}, ..}, .. } |
-                    winit::Event::WindowEvent{event: winit::WindowEvent::Closed, ..} =>
+                    winit::Event::WindowEvent{event: winit::WindowEvent::CloseRequested, ..} =>
                         should_quit = true,
                     _ => {},
                 }
