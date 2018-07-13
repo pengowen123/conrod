@@ -121,12 +121,30 @@ mod feature {
                 None => break 'main,
             };
 
-            if let Some(primitives) = ui.draw_if_changed() {
+            if let Some(primitives) = ui.draw_if_changed().map(|p| p.owned()) {
+                let mut walk = primitives.walk();
+
+                while let Some(prim) = walk.next() {
+                    use conrod::render::PrimitiveKind::*;
+                    let name = match prim.kind {
+                        Rectangle { .. } => "rectangle",
+                        TrianglesSingleColor { .. } => "triangles single color",
+                        TrianglesMultiColor { .. } => "triangles multi color",
+                        Image { .. } => "image",
+                        Text { .. } => "text",
+                        Other { .. } => "other",
+                    };
+
+                    println!("found primitive: {:?}", name);
+                }
+
+                println!("done finding primitives");
+
                 let dims = (win_size.width as f32, win_size.height as f32);
                 //Clear the window
                 encoder.clear(&rtv, CLEAR_COLOR);
 
-                renderer.fill(&mut encoder,dims,primitives,&image_map);
+                renderer.fill(&mut encoder,dims,primitives.walk(),&image_map);
 
                 renderer.draw(&mut factory,&mut encoder,&image_map);
 

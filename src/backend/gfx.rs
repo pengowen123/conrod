@@ -580,6 +580,11 @@ impl<'a, R: Resources> Renderer<'a, R>{
             }
         }
     }
+
+    /// Switches the color output of the renderer to the provided render target
+    pub fn use_render_target(&mut self, rtv: gfx::handle::RenderTargetView<R, ColorFormat>) {
+        self.data.out = rtv;
+    }
 }
 
 fn gamma_srgb_to_linear(c: [f32; 4]) -> [f32; 4] {
