@@ -581,9 +581,16 @@ impl<'a, R: Resources> Renderer<'a, R>{
         }
     }
 
-    /// Switches the color output of the renderer to the provided render target
-    pub fn use_render_target(&mut self, rtv: gfx::handle::RenderTargetView<R, ColorFormat>) {
+    /// Handles a window resize
+    pub fn on_resize(&mut self, rtv: gfx::handle::RenderTargetView<R, ColorFormat>) {
+        let (w, h, _, _) = rtv.get_dimensions();
         self.data.out = rtv;
+        self.data.scissor= gfx::Rect {
+            x: 0,
+            y: 0,
+            w,
+            h,
+        };
     }
 }
 
